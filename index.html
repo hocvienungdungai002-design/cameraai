@@ -3,64 +3,57 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VDC Admin - Drive Storage</title>
+    <title>VDC Admin - Cloud Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         body { font-family: sans-serif; background: #0f172a; color: white; margin: 0; }
-        header { padding: 15px; background: #1e293b; border-bottom: 2px solid #2563eb; text-align: center; }
+        header { padding: 15px; background: #1e293b; border-bottom: 2px solid #2563eb; text-align: center; position: sticky; top: 0; }
         .container { padding: 15px; max-width: 600px; margin: auto; }
-        .violation-card { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px solid #334155; }
-        .violation-card img { width: 100%; border-radius: 8px; margin-top: 10px; background: #000; }
-        .status-tag { display: inline-block; padding: 4px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; }
-        .tag-red { background: #991b1b; color: #f87171; }
+        .card { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px solid #334155; }
+        .card img { width: 100%; border-radius: 8px; margin-top: 10px; background: #000; min-height: 200px; }
+        .status { color: #f87171; font-weight: bold; margin: 5px 0; }
     </style>
 </head>
 <body>
 
-<header>
-    <b style="font-size: 18px;">GIÁM SÁT AN TOÀN VDC (CLOUD DRIVE)</b>
-</header>
+<header><b>VDC SAFETY MONITORING SYSTEM</b></header>
 
-<div class="container" id="log-container">
-    <p style="text-align:center; color:#64748b;">Đang tải bằng chứng từ Drive...</p>
+<div class="container" id="log-list">
+    <p style="text-align:center; color:#64748b;">Đang tải dữ liệu realtime...</p>
 </div>
 
 <script>
-    // Cấu hình Firebase giữ nguyên như cũ để lấy Nhật ký text
-    const firebaseConfig = {
+    const config = {
         apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo",
         databaseURL: "https://camera-ai-fd8d7-default-rtdb.firebaseio.com/",
         projectId: "camera-ai-fd8d7"
     };
-    firebase.initializeApp(firebaseConfig);
+    firebase.initializeApp(config);
     const db = firebase.database();
 
-    db.ref('safety_logs').limitToLast(10).on('value', (snapshot) => {
-        const container = document.getElementById('log-container');
-        container.innerHTML = "";
-        const data = snapshot.val();
-        
-        if (data) {
-            Object.values(data).reverse().forEach(log => {
-                const card = document.createElement('div');
-                card.className = "violation-card";
-                
-                // Logic: Lấy link ảnh từ Drive (nếu bạn đẩy link ảnh vào Firebase trong AppScript)
-                // Ở đây tạm dùng placeholder nếu chưa có link ảnh cụ thể
-                const driveImgUrl = log.drive_url || "https://via.placeholder.com/600x400?text=Check+Drive+Folder";
+    db.ref('safety_logs').limitToLast(10).on('value', (snap) => {
+        const container = document.getElementById('log-list');
+        const data = snap.val();
+        if (!data) return;
 
-                card.innerHTML = `
-                    <div style="display:flex; justify-content:space-between;">
-                        <b>${log.name}</b>
-                        <span style="font-size:12px; color:#94a3b8;">${log.time}</span>
-                    </div>
-                    <div class="status-tag tag-red">${log.status}</div>
-                    <img src="${driveImgUrl}" alt="Bằng chứng vi phạm">
-                `;
-                container.appendChild(card);
-            });
-        }
+        container.innerHTML = "";
+        Object.keys(data).reverse().forEach(key => {
+            const log = data[key];
+            const hasImg = log.drive_url !== "";
+            
+            const card = document.createElement('div');
+            card.className = "card";
+            card.innerHTML = `
+                <div style="display:flex; justify-content:space-between; font-size:14px;">
+                    <b>${log.name}</b> <span>${log.time}</span>
+                </div>
+                <div class="status">${log.status}</div>
+                ${hasImg ? `<img src="${log.drive_url}" alt="Bằng chứng">` 
+                         : `<p style="font-size:12px; color:#64748b; text-align:center; padding:20px;">Đang tải ảnh bằng chứng từ Drive...</p>`}
+            `;
+            container.appendChild(card);
+        });
     });
 </script>
 </body>
