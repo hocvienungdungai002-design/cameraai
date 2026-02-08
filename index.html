@@ -3,24 +3,32 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VDC Admin - Cloud Dashboard</title>
+    <title>VDC Admin - Internet Monitor</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         body { font-family: sans-serif; background: #0f172a; color: white; margin: 0; }
-        header { padding: 15px; background: #1e293b; border-bottom: 2px solid #2563eb; text-align: center; position: sticky; top: 0; }
-        .container { padding: 15px; max-width: 600px; margin: auto; }
+        header { padding: 15px; background: #1e293b; border-bottom: 2px solid #2563eb; text-align: center; position: sticky; top: 0; z-index: 100; }
+        .container { padding: 15px; max-width: 640px; margin: auto; }
+        .live-box { background: #000; border: 2px solid #2563eb; border-radius: 12px; overflow: hidden; margin-bottom: 20px; }
+        .live-box img { width: 100%; display: block; min-height: 300px; }
         .card { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px solid #334155; }
-        .card img { width: 100%; border-radius: 8px; margin-top: 10px; background: #000; min-height: 200px; }
+        .card img { width: 100%; border-radius: 8px; margin-top: 10px; background: #000; }
         .status { color: #f87171; font-weight: bold; margin: 5px 0; }
     </style>
 </head>
 <body>
 
-<header><b>VDC SAFETY MONITORING SYSTEM</b></header>
+<header><b>VDC SAFETY SYSTEM MONITOR</b></header>
 
-<div class="container" id="log-list">
-    <p style="text-align:center; color:#64748b;">Đang tải dữ liệu realtime...</p>
+<div class="container">
+    <h4 style="color:#94a3b8; text-align:center;">GIÁM SÁT TRỰC TUYẾN (LIVE)</h4>
+    <div class="live-box">
+        <img id="live-monitor" src="https://drive.google.com/uc?export=view&id=ID_FILE_ANH_LIVE_CUA_BAN" alt="Đang kết nối Camera...">
+    </div>
+
+    <h4 style="color:#94a3b8; border-top: 1px solid #334155; padding-top: 20px;">NHẬT KÝ VI PHẠM MỚI NHẤT</h4>
+    <div id="log-list"></div>
 </div>
 
 <script>
@@ -32,6 +40,14 @@
     firebase.initializeApp(config);
     const db = firebase.database();
 
+    // 1. Tự động làm mới khung hình Live mỗi 2 giây
+    setInterval(() => {
+        const img = document.getElementById('live-monitor');
+        const baseUrl = "https://drive.google.com/uc?export=view&id=ID_FILE_ANH_LIVE_CUA_BAN";
+        img.src = baseUrl + "&t=" + new Date().getTime(); // Chặn cache
+    }, 2000);
+
+    // 2. Cập nhật nhật ký vi phạm
     db.ref('safety_logs').limitToLast(10).on('value', (snap) => {
         const container = document.getElementById('log-list');
         const data = snap.val();
@@ -41,7 +57,6 @@
         Object.keys(data).reverse().forEach(key => {
             const log = data[key];
             const hasImg = log.drive_url !== "";
-            
             const card = document.createElement('div');
             card.className = "card";
             card.innerHTML = `
@@ -49,8 +64,8 @@
                     <b>${log.name}</b> <span>${log.time}</span>
                 </div>
                 <div class="status">${log.status}</div>
-                ${hasImg ? `<img src="${log.drive_url}" alt="Bằng chứng">` 
-                         : `<p style="font-size:12px; color:#64748b; text-align:center; padding:20px;">Đang tải ảnh bằng chứng từ Drive...</p>`}
+                ${hasImg ? `<img src="${log.drive_url}">` 
+                         : `<p style="font-size:11px; color:#64748b; text-align:center;">Đang tải ảnh bằng chứng...</p>`}
             `;
             container.appendChild(card);
         });
