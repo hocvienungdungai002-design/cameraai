@@ -3,70 +3,64 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VDC Admin Dashboard</title>
+    <title>VDC Admin - Drive Storage</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
         body { font-family: sans-serif; background: #0f172a; color: white; margin: 0; }
-        header { padding: 15px; background: #1e293b; border-bottom: 2px solid #2563eb; display: flex; justify-content: space-between; }
-        .log-item { background: #1e293b; margin: 10px; padding: 15px; border-radius: 8px; border-left: 5px solid #22c55e; }
-        .violation { border-left-color: #ef4444; }
-        #status { font-size: 12px; font-weight: bold; }
+        header { padding: 15px; background: #1e293b; border-bottom: 2px solid #2563eb; text-align: center; }
+        .container { padding: 15px; max-width: 600px; margin: auto; }
+        .violation-card { background: #1e293b; border-radius: 12px; padding: 15px; margin-bottom: 20px; border: 1px solid #334155; }
+        .violation-card img { width: 100%; border-radius: 8px; margin-top: 10px; background: #000; }
+        .status-tag { display: inline-block; padding: 4px 10px; border-radius: 5px; font-weight: bold; font-size: 12px; }
+        .tag-red { background: #991b1b; color: #f87171; }
     </style>
 </head>
 <body>
 
 <header>
-    <div>VDC SYSTEM MONITOR</div>
-    <div id="status">ĐANG KIỂM TRA KẾT NỐI...</div>
+    <b style="font-size: 18px;">GIÁM SÁT AN TOÀN VDC (CLOUD DRIVE)</b>
 </header>
 
-<div id="display-list" style="padding: 10px;">
-    <p style="text-align:center; color:#64748b;">Chờ dữ liệu từ Laptop Asus i7...</p>
+<div class="container" id="log-container">
+    <p style="text-align:center; color:#64748b;">Đang tải bằng chứng từ Drive...</p>
 </div>
 
 <script>
-    // Cấu hình Firebase dựa trên thông tin bạn cung cấp
-    const config = {
+    // Cấu hình Firebase giữ nguyên như cũ để lấy Nhật ký text
+    const firebaseConfig = {
         apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo",
         databaseURL: "https://camera-ai-fd8d7-default-rtdb.firebaseio.com/",
-        projectId: "camera-ai-fd8d7" // Cập nhật đúng ID dự án mới
+        projectId: "camera-ai-fd8d7"
     };
-
-    firebase.initializeApp(config);
+    firebase.initializeApp(firebaseConfig);
     const db = firebase.database();
-    const statusDiv = document.getElementById('status');
-    const listDiv = document.getElementById('display-list');
 
-    // Kiểm tra kết nối thực tế
-    db.ref(".info/connected").on("value", (snap) => {
-        if (snap.val() === true) {
-            statusDiv.innerText = "TRỰC TUYẾN (ĐÃ KẾT NỐI)";
-            statusDiv.style.color = "#22c55e";
-        } else {
-            statusDiv.innerText = "NGOẠI TUYẾN (MẤT KẾT NỐI)";
-            statusDiv.style.color = "#ef4444";
-        }
-    });
-
-    // Lắng nghe dữ liệu vi phạm
     db.ref('safety_logs').limitToLast(10).on('value', (snapshot) => {
+        const container = document.getElementById('log-container');
+        container.innerHTML = "";
         const data = snapshot.val();
-        if (!data) return;
         
-        listDiv.innerHTML = "";
-        Object.values(data).reverse().forEach(log => {
-            const isV = log.status !== "An Toàn" && log.status !== "PPE OK";
-            listDiv.innerHTML += `
-                <div class="log-item ${isV ? 'violation' : ''}">
-                    <b>${log.name}</b> - <span style="font-size:12px">${log.time}</span><br>
-                    <span style="color:${isV ? '#f87171' : '#34d399'}">${log.status}</span>
-                </div>
-            `;
-        });
-    }, (error) => {
-        console.error("Lỗi Firebase:", error);
-        statusDiv.innerText = "LỖI QUY TẮC BẢO MẬT (RULES)";
+        if (data) {
+            Object.values(data).reverse().forEach(log => {
+                const card = document.createElement('div');
+                card.className = "violation-card";
+                
+                // Logic: Lấy link ảnh từ Drive (nếu bạn đẩy link ảnh vào Firebase trong AppScript)
+                // Ở đây tạm dùng placeholder nếu chưa có link ảnh cụ thể
+                const driveImgUrl = log.drive_url || "https://via.placeholder.com/600x400?text=Check+Drive+Folder";
+
+                card.innerHTML = `
+                    <div style="display:flex; justify-content:space-between;">
+                        <b>${log.name}</b>
+                        <span style="font-size:12px; color:#94a3b8;">${log.time}</span>
+                    </div>
+                    <div class="status-tag tag-red">${log.status}</div>
+                    <img src="${driveImgUrl}" alt="Bằng chứng vi phạm">
+                `;
+                container.appendChild(card);
+            });
+        }
     });
 </script>
 </body>
