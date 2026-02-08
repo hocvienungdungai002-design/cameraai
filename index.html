@@ -3,101 +3,70 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>VDC Admin ae4 - Dashboard</title>
+    <title>VDC Admin Dashboard</title>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-app.js"></script>
     <script src="https://www.gstatic.com/firebasejs/8.10.1/firebase-database.js"></script>
     <style>
-        :root { --blue: #2563eb; --red: #dc2626; --slate: #0f172a; }
-        body { font-family: sans-serif; margin: 0; background: var(--slate); color: white; }
-        header { padding: 15px; background: #1e293b; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--blue); position: sticky; top: 0; z-index: 100; }
-        .container { padding: 15px; max-width: 800px; margin: auto; }
-        .log-card { background: #1e293b; border-radius: 10px; padding: 15px; margin-bottom: 12px; border-left: 5px solid var(--blue); animation: slideIn 0.3s ease-out; }
-        .log-card.violation { border-left-color: var(--red); background: #2d1a1a; }
-        .time { font-size: 12px; color: #94a3b8; }
-        .status-badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 12px; font-weight: bold; margin-top: 5px; }
-        .status-ok { background: #065f46; color: #34d399; }
-        .status-warn { background: #991b1b; color: #f87171; }
-        #loading { text-align: center; padding: 50px; color: #64748b; }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        body { font-family: sans-serif; background: #0f172a; color: white; margin: 0; }
+        header { padding: 15px; background: #1e293b; border-bottom: 2px solid #2563eb; display: flex; justify-content: space-between; }
+        .log-item { background: #1e293b; margin: 10px; padding: 15px; border-radius: 8px; border-left: 5px solid #22c55e; }
+        .violation { border-left-color: #ef4444; }
+        #status { font-size: 12px; font-weight: bold; }
     </style>
 </head>
 <body>
 
 <header>
-    <div style="font-weight: bold;">VDC SAFETY SYSTEM</div>
-    <div id="conn-status" style="font-size: 12px; color: #f59e0b;">Đang kết nối...</div>
+    <div>VDC SYSTEM MONITOR</div>
+    <div id="status">ĐANG KIỂM TRA KẾT NỐI...</div>
 </header>
 
-<div class="container">
-    <h3 style="color: #94a3b8; border-bottom: 1px solid #334155; padding-bottom: 10px;">NHẬT KÝ AN TOÀN REALTIME</h3>
-    <div id="loading">Đang tải dữ liệu từ Firebase...</div>
-    <div id="log-list"></div>
+<div id="display-list" style="padding: 10px;">
+    <p style="text-align:center; color:#64748b;">Chờ dữ liệu từ Laptop Asus i7...</p>
 </div>
 
 <script>
-    // 1. Cấu hình Firebase
-    // Cập nhật DatabaseURL mới của bạn để không bị treo
-    const firebaseConfig = {
+    // Cấu hình Firebase dựa trên thông tin bạn cung cấp
+    const config = {
         apiKey: "AIzaSyCzWjfcD5Dgq7V-i2izb9tKLR6QM6qWPQo",
-        authDomain: "tavietnam-78ae8.firebaseapp.com",
-        projectId: "tavietnam-78ae8",
-        storageBucket: "tavietnam-78ae8.firebasestorage.app",
-        messagingSenderId: "670121705534",
-        appId: "1:670121705534:web:1027ad98550573ad37116f",
-        databaseURL: "https://camera-ai-fd8d7-default-rtdb.firebaseio.com/"
+        databaseURL: "https://camera-ai-fd8d7-default-rtdb.firebaseio.com/",
+        projectId: "camera-ai-fd8d7" // Cập nhật đúng ID dự án mới
     };
 
-    // Khởi tạo Firebase
-    firebase.initializeApp(firebaseConfig);
-    const database = firebase.database();
-    const logList = document.getElementById('log-list');
-    const loading = document.getElementById('loading');
-    const connStatus = document.getElementById('conn-status');
+    firebase.initializeApp(config);
+    const db = firebase.database();
+    const statusDiv = document.getElementById('status');
+    const listDiv = document.getElementById('display-list');
 
-    // 2. Lắng nghe dữ liệu Realtime
-    const logsRef = database.ref('safety_logs');
-    
-    // Kiểm tra trạng thái kết nối
-    database.ref(".info/connected").on("value", (snap) => {
+    // Kiểm tra kết nối thực tế
+    db.ref(".info/connected").on("value", (snap) => {
         if (snap.val() === true) {
-            connStatus.innerText = "Trực tuyến";
-            connStatus.style.color = "#22c55e";
+            statusDiv.innerText = "TRỰC TUYẾN (ĐÃ KẾT NỐI)";
+            statusDiv.style.color = "#22c55e";
         } else {
-            connStatus.innerText = "Ngoại tuyến";
-            connStatus.style.color = "#ef4444";
+            statusDiv.innerText = "NGOẠI TUYẾN (MẤT KẾT NỐI)";
+            statusDiv.style.color = "#ef4444";
         }
     });
 
-    // Tải 20 bản ghi mới nhất
-    logsRef.limitToLast(20).on('value', (snapshot) => {
-        loading.style.display = 'none';
-        logList.innerHTML = '';
-        
+    // Lắng nghe dữ liệu vi phạm
+    db.ref('safety_logs').limitToLast(10).on('value', (snapshot) => {
         const data = snapshot.val();
-        if (!data) {
-            logList.innerHTML = '<p style="text-align:center; color:#64748b;">Chưa có dữ liệu vi phạm.</p>';
-            return;
-        }
-
-        // Chuyển object thành array và đảo ngược để hiện mới nhất lên đầu
-        const sortedLogs = Object.values(data).reverse();
-
-        sortedLogs.forEach(log => {
-            const isViolation = log.status !== "PPE OK" && log.status !== "An Toàn";
-            const card = document.createElement('div');
-            card.className = `log-card ${isViolation ? 'violation' : ''}`;
-            
-            card.innerHTML = `
-                <div style="display:flex; justify-content:space-between; align-items:start;">
-                    <b style="font-size: 16px;">${log.name}</b>
-                    <span class="time">${log.time}</span>
-                </div>
-                <div class="status-badge ${isViolation ? 'status-warn' : 'status-ok'}">
-                    ${log.status}
+        if (!data) return;
+        
+        listDiv.innerHTML = "";
+        Object.values(data).reverse().forEach(log => {
+            const isV = log.status !== "An Toàn" && log.status !== "PPE OK";
+            listDiv.innerHTML += `
+                <div class="log-item ${isV ? 'violation' : ''}">
+                    <b>${log.name}</b> - <span style="font-size:12px">${log.time}</span><br>
+                    <span style="color:${isV ? '#f87171' : '#34d399'}">${log.status}</span>
                 </div>
             `;
-            logList.appendChild(card);
         });
+    }, (error) => {
+        console.error("Lỗi Firebase:", error);
+        statusDiv.innerText = "LỖI QUY TẮC BẢO MẬT (RULES)";
     });
 </script>
 </body>
